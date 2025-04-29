@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analyzer</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --neutral: #6b7280;
+            --neutral-light: #f9fafb;
+            --dark: #1f2937;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f6f7ff 0%, #e9f0ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            transform: translateY(0);
+            opacity: 0;
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 60%);
+            animation: pulse 15s infinite linear;
+            z-index: 1;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(10%, 10%) scale(1.1);
+            }
+            66% {
+                transform: translate(-5%, -15%) scale(0.9);
+            }
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .input-group {
+            margin-bottom: 30px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 18px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background-color: var(--neutral-light);
+            color: var(--dark);
+            resize: none;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        .textarea-container {
+            position: relative;
+        }
+        
+        .char-count {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: var(--neutral);
+            opacity: 0.8;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .button::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1);
+            transition: 0.5s all ease;
+        }
+        
+        .button:active::after {
+            opacity: 1;
+            transform: scale(50);
+            transition: 0s;
+        }
+        
+        .button-icon {
+            margin-right: 10px;
+        }
+        
+        .result {
+            margin-top: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            display: none;
+        }
+        
+        .result.visible {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .result-header h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .result-content {
+            background-color: var(--neutral-light);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .sentiment-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .sentiment-score {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .positive {
+            color: var(--success);
+        }
+        
+        .negative {
+            color: var(--danger);
+        }
+        
+        .neutral {
+            color: var(--neutral);
+        }
+        
+        .meter {
+            width: 100%;
+            height: 10px;
+            background-color: #e5e7eb;
+            border-radius: 20px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            border-radius: 20px;
+            transition: width 1s ease-in-out;
+            background: linear-gradient(90deg, var(--danger) 0%, #f59e0b 50%, var(--success) 100%);
+        }
+        
+        .highlight-words {
+            margin-top: 25px;
+        }
+        
+        .word-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .word-tag {
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .word-positive {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .word-negative {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: var(--neutral);
+            font-size: 14px;
+        }
+        
+        /* Animations */
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes ripple {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+            70% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        
+        /* Loading animation */
+        .loading {
+            display: none;
+            justify-content: center;
+            margin: 40px 0;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .loading-dot {
+            width: 12px;
+            height: 12px;
+            margin: 0 5px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            animation: loading 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes loading {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .header {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Customer Review Sentiment Analyzer</h1>
+            <p>Analyze the emotional tone of customer feedback with advanced AI</p>
+        </div>
+        
+        <div class="content">
+            <form id="sentiment-form" method="POST" action="/">
+                <div class="input-group">
+                    <label for="review">Enter Customer Review</label>
+                    <div class="textarea-container">
+                        <textarea id="review" name="review" placeholder="Type or paste customer review here..." autofocus></textarea>
+                        <div class="char-count"><span id="current-chars">0</span> / 500</div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="button">
+                    <span class="button-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        </svg>
+                    </span>
+                    <span>Analyze Sentiment</span>
+                </button>
+            </form>
+            
+            <div class="loading">
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+                <div class="loading-dot"></div>
+            </div>
+            
+            <div class="result {{ 'visible' if result.sentiment else '' }}" id="result">
+                <div class="result-header">
+                    <h3>Analysis Results</h3>
+                </div>
+                
+                <div class="result-content">
+                    <div class="sentiment-indicator">
+                        <div>
+                            <h4>Sentiment Score</h4>
+                            <div class="sentiment-score {{ 'positive' if result.sentiment == 'Positive' else 'negative' if result.sentiment == 'Negative' else 'neutral' }}" id="sentiment-score">{{ result.score }}</div>
+                        </div>
+                        <div>
+                            <h4>Sentiment Category</h4>
+                            <div class="sentiment-category {{ 'positive' if result.sentiment == 'Positive' else 'negative' if result.sentiment == 'Negative' else 'neutral' }}" id="sentiment-category">{{ result.sentiment }} {{ result.emoji }}</div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Sentiment Meter</h4>
+                        <div class="meter">
+                            <div class="meter-fill" id="meter-fill" style="width: {{ result.score }}%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Confidence</h4>
+                        <div class="confidence">{{ result.confidence }}%</div>
+                    </div>
+                    
+                    <div class="highlight-words">
+                        <h4>Key Sentiment Words</h4>
+                        <div class="word-list" id="word-list">
+                            {% for word in result.positive_words %}
+                                <span class="word-tag word-positive">{{ word }}</span>
+                            {% endfor %}
+                            {% for word in result.negative_words %}
+                                <span class="word-tag word-negative">{{ word }}</span>
+                            {% endfor %}
+                            {% if not result.positive_words and not result.negative_words %}
+                                <p style="color: var(--neutral);">No significant sentiment words found.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>© 2025 Sentiment Analyzer Pro | All Rights Reserved</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Character counter
+        const textarea = document.getElementById('review');
+        const charCount = document.getElementById('current-chars');
+        const form = document.getElementById('sentiment-form');
+        const resultContainer = document.getElementById('result');
+        const loading = document.querySelector('.loading');
+        
+        textarea.addEventListener('input', function() {
+            const currentLength = this.value.length;
+            charCount.textContent = currentLength;
+            
+            if (currentLength > 500) {
+                charCount.style.color = 'var(--danger)';
+            } else {
+                charCount.style.color = 'var(--neutral)';
+            }
+        });
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const review = textarea.value.trim();
+            
+            if (review === '') {
+                alert('Please enter a review to analyze.');
+                return;
+            }
+            
+            // Show loading animation
+            loading.classList.add('active');
+            resultContainer.classList.remove('visible');
+            
+            // Submit form
+            form.submit();
+        });
+
+        // Ensure loading animation is hidden on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loading.classList.remove('active');
+            if (resultContainer.classList.contains('visible')) {
+                resultContainer.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
